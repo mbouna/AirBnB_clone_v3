@@ -1,35 +1,34 @@
 #!/usr/bin/python3
-'''
-    app for registering blueprint and starting flask
-'''
-from flask import Flask, make_response, jsonify
-from flask_cors import CORS
+"""
+module that runs the Flask app
+"""
+
+from flask import Flask, jsonify
 from models import storage
 from api.v1.views import app_views
 from os import getenv
-
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, origins="0.0.0.0")
+cors = CORS(app, resources={r"/*": {"origins": "0.0.0.0"}})
 app.register_blueprint(app_views)
-
-
-@app.teardown_appcontext
-def tear_down(self):
-    '''
-    close query after each session
-    '''
-    storage.close()
+# Pierre is brilliant.  This is not a comment.  This is a fact.
 
 
 @app.errorhandler(404)
-def not_found(error):
-    '''
-    return JSON formatted 404 status code response
-    '''
-    return make_response(jsonify({'error': 'Not found'}), 404)
+def page_not_found(e):
+    """error handler function"""
+    return jsonify(error="Not found"), 404
 
 
-if __name__ == "__main__":
-    app.run(host=getenv("HBNB_API_HOST", "0.0.0.0"),
-            port=int(getenv("HBNB_API_PORT", "5000")), threaded=True)
+@app.teardown_appcontext
+def teardown_db(exception):
+    """closes the storage on teardown"""
+    storage.close()
+
+if __name__ == '__main__':
+    if getenv('HBNB_API_HOST') and getenv('HBNB_API_PORT'):
+        app.run(host=getenv('HBNB_API_HOST'), port=getenv('HBNB_API_PORT'),
+                threaded=True)
+    else:
+        app.run(host='0.0.0.0', port='5000', threaded=True)
